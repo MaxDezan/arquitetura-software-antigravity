@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Admin — Produtos{% endblock %}
+{% block content %}
+<h1>Admin — Produtos rastreados</h1>
+<p class="meta">Visão pública em <a href="/public/">/public/</a></p>
+
+{% if not products %}
+<p class="empty">Nenhum produto ainda. Rode <code>python -m comparador track</code> primeiro.</p>
+{% else %}
+<div class="product-grid">
+  {% for p in products %}
+  <a class="product-card admin-card" href="/admin/product/{{ p.id }}">
+    <div class="product-body">
+      <div class="product-header-row">
+        <h2>{{ p.display_name }}</h2>
+        <span class="listing-count">{{ p.listing_count }} ofertas</span>
+      </div>
+      
+      <div class="product-meta">
+        <div class="price-info">
+          <span class="label">Menor preço</span>
+          <span class="price">
+            {% if p.best_price %}R$ {{ "%.2f"|format(p.best_price) }}{% else %}—{% endif %}
+          </span>
+        </div>
+        
+        {% if p.best_site %}
+          <span class="site-badge site-{{ p.best_site }}">{{ p.best_site }}</span>
+        {% endif %}
+      </div>
+      
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Produtos{% endblock %}
+{% block content %}
+<h1>Produtos</h1>
+
+{% if not products %}
+<p class="empty">
+  Nenhum produto com preço disponível ainda.
+  {% if is_admin %}Rode <code>python -m comparador track</code> primeiro.{% endif %}
+</p>
+{% else %}
+<div class="product-grid">
+  {% for p in products %}
+  <a class="product-card" href="/public/product/{{ p.id }}">
+    <div class="product-photo">
+      {% if p.image_url %}
+        <img src="{{ p.image_url }}" alt="{{ p.display_name }}" loading="lazy">
+      {% else %}
+        <div class="no-photo">📦</div>
+      {% endif %}
+    </div>
+    <div class="product-body">
+      <h2>{{ p.display_name }}</h2>
+      <div class="product-meta">
+        <span class="price">R$ {{ "%.2f"|format(p.best_price) }}</span>
+        <span class="stores">
+          {{ p.store_count }} loja{% if p.store_count != 1 %}s{% endif %}
+        </span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

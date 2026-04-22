@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ product.display_name }}{% endblock %}
+{% block content %}
+<style>
+  :root { --accent: {{ chart_color }}; }
+</style>
+<nav class="breadcrumb"><a href="/public/">← produtos</a></nav>
+<div class="product-header-row">
+  <h1>{{ product.display_name }}</h1>
+  <a href="#price-history" class="btn-history">Histórico de preço</a>
+</div>
+<h2>Lojas que vendem — menor preço primeiro</h2>
+
+{% if not listings %}
+<p class="empty">Nenhuma oferta disponível no momento.</p>
+{% else %}
+<div class="comparison-list">
+  {% for l in listings %}
+  <a class="comparison-row" href="{{ l.url }}" target="_blank" rel="noopener">
+    <div class="thumb-wrap">
+      {% if l.image_url %}
+        <img src="{{ l.image_url }}" alt="" loading="lazy">
+      {% else %}
+        <div class="no-photo">📦</div>
+      {% endif %}
+    </div>
+    <div class="info">
+      <span class="site-badge site-{{ l.site }}">{{ l.site }}</span>
+      <p class="title">{{ l.title }}</p>
+      {% if l.seller %}<p class="seller">vendedor: {{ l.seller }}</p>{% endif %}
+    </div>
+    <div class="price-col">
+      <span class="price">R$ {{ "%.2f"|format(l.current_price) }}</span>
+      {% if l.original_price and l.original_price > l.current_price %}
+        <s class="original">R$ {{ "%.2f"|format(l.original_price) }}</s>
+      {% endif %}
+      <span class="go">Ir à loja →</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% include 'partials/price_chart.html' %}
+
+{% endblock %}

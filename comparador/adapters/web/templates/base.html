@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Comparador de Preços{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css?v=2">
+</head>
+<body>
+<header>
+  <a href="/public/" class="logo">Comparador de Preços</a>
+  <nav class="topnav">
+    {% if is_admin %}
+      <a href="/admin/">Admin</a>
+      <a href="/admin/logout" class="logout">Sair</a>
+    {% else %}
+      <a href="/admin/login">Entrar</a>
+    {% endif %}
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>
