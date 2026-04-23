@@ -20,6 +20,7 @@
 {% else %}
 <div class="listings-grid">
   {% for l in listings %}
+  {% if l.link_status != 'rejected' %}
   <article class="listing-card status-{{ l.link_status }}">
     <header>
       <span class="site-badge site-{{ l.site }}">{{ l.site }}</span>
@@ -51,11 +52,11 @@
         <form method="post" action="/admin/listing/{{ l.id }}/confirm">
           <button class="confirm" type="submit">✓ Confirmar</button>
         </form>
-        <form method="post" action="/admin/listing/{{ l.id }}/reject">
+        <form method="post" action="/admin/listing/{{ l.id }}/reject" data-dismiss>
           <button class="reject" type="submit">✗ Rejeitar</button>
         </form>
       {% elif l.link_status in ['auto', 'confirmed'] %}
-        <form method="post" action="/admin/listing/{{ l.id }}/unobserve">
+        <form method="post" action="/admin/listing/{{ l.id }}/unobserve" data-dismiss>
           <button class="reject" type="submit">Parar de observar</button>
         </form>
       {% elif l.link_status == 'rejected' %}
@@ -65,9 +66,65 @@
       {% endif %}
     </div>
   </article>
+  {% endif %}
   {% endfor %}
 </div>
 {% endif %}
 
 {% include 'partials/price_chart.html' %}
+
+<script>
+(function () {
+  function dismissCard(card) {
+    // 1. Lock the current height so the collapse transition has a from-value
+    card.style.maxHeight = card.scrollHeight + 'px';
+    card.style.overflow  = 'hidden';
+
+    // Force a reflow so the browser registers the explicit max-height before
+    // we change it (otherwise the transition has no start point).
+    card.getBoundingClientRect();
+
+    // 2. Fade + collapse simultaneously
+    card.style.transition = 'opacity 0.35s ease, max-height 0.4s ease 0.25s, margin 0.4s ease 0.25s, padding 0.4s ease 0.25s';
+    card.style.opacity    = '0';
+    card.style.maxHeight  = '0';
+    card.style.margin     = '0';
+    card.style.padding    = '0';
+
+    card.addEventListener('transitionend', function onEnd(e) {
+      // Wait for the last transition (max-height) to finish before removing
+      if (e.propertyName !== 'max-height') return;
+      card.removeEventListener('transitionend', onEnd);
+      card.remove();
+    });
+  }
+
+  document.querySelectorAll('form[data-dismiss]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const btn  = form.querySelector('button');
+      const card = form.closest('article.listing-card');
+
+      // Disable the button to prevent double-clicks
+      if (btn) btn.disabled = true;
+
+      fetch(form.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+      })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (card) dismissCard(card);
+      })
+      .catch(function () {
+        // On error fall back to normal form submit so the user isn't stuck
+        if (btn) btn.disabled = false;
+        form.submit();
+      });
+    });
+  });
+})();
+</script>
 {% endblock %}

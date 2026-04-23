@@ -82,9 +82,15 @@ class MercadoLivreScraper(BaseScraper):
 
     @staticmethod
     def _extract_price(item) -> float | None:
-        container = item.select_one(
-            ".andes-money-amount--cents-superscript, .andes-money-amount"
-        )
+        # The current/sale price is always inside .poly-price__current.
+        # Searching within that parent avoids picking up the installment
+        # price (inside .poly-price__installments) which uses the same
+        # .andes-money-amount classes.
+        current = item.select_one(".poly-price__current")
+        if not current:
+            # Fallback for older ML layout without poly-price__current
+            current = item
+        container = current.select_one(".andes-money-amount--cents-superscript")
         if not container:
             return None
         frac_el = container.select_one("span.andes-money-amount__fraction")
@@ -100,8 +106,11 @@ class MercadoLivreScraper(BaseScraper):
 
     @staticmethod
     def _extract_original_price(item) -> float | None:
+        # .andes-money-amount--previous is the crossed-out "De" price;
+        # it lives directly inside .poly-component__price (not inside
+        # .poly-price__current) so it is unambiguous.
         el = item.select_one(
-            "s.andes-money-amount--previous span.andes-money-amount__fraction"
+            ".andes-money-amount--previous .andes-money-amount__fraction"
         )
         if not el:
             return None

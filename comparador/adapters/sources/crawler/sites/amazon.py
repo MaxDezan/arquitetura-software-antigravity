@@ -88,7 +88,13 @@ class AmazonScraper(BaseScraper):
 
     @staticmethod
     def _extract_original_price(item) -> float | None:
-        el = item.select_one(".a-price.a-text-price .a-offscreen")
+        # The crossed-out "De" price sits inside an .aok-inline-block section.
+        # The installment price also uses .a-price.a-text-price but its parent
+        # is a plain .a-row — filtering by .aok-inline-block is unambiguous.
+        el = item.select_one(
+            ".aok-inline-block .a-price.a-text-price .a-offscreen,"
+            ".a-price.a-text-price[aria-hidden] .a-offscreen"
+        )
         return _parse_brl(el.get_text(strip=True)) if el else None
 
     @staticmethod

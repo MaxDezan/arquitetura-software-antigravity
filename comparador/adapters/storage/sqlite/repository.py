@@ -176,13 +176,18 @@ class SqliteProductRepository(ProductRepository):
         SELECT
             p.id,
             p.display_name,
-            (SELECT COUNT(*) FROM listings WHERE product_id = p.id) AS listing_count,
+            (SELECT COUNT(*) FROM listings WHERE product_id = p.id AND link_status IN ('auto', 'confirmed')) AS listing_count,
             (SELECT MIN(c.price) FROM current c WHERE c.product_id = p.id) AS best_price,
             (SELECT c.site FROM current c
                  WHERE c.product_id = p.id ORDER BY c.price ASC LIMIT 1) AS best_site,
             (SELECT MAX(c.fetched_at) FROM current c
                  WHERE c.product_id = p.id) AS last_updated
         FROM products p
+        WHERE EXISTS (
+            SELECT 1 FROM listings l
+            WHERE l.product_id = p.id
+              AND l.link_status != 'rejected'
+        )
         ORDER BY p.display_name
         """
         with self._conn() as conn:
@@ -288,8 +293,9 @@ class SqliteProductRepository(ProductRepository):
             (SELECT MIN(c.price) FROM current c WHERE c.product_id = p.id) AS best_price,
             (SELECT c.site FROM current c
                  WHERE c.product_id = p.id ORDER BY c.price ASC LIMIT 1) AS best_site,
-            (SELECT COUNT(DISTINCT c.site) FROM current c
-                 WHERE c.product_id = p.id) AS store_count,
+            (SELECT COUNT(*) FROM listings l2
+                 WHERE l2.product_id = p.id
+                   AND l2.link_status IN ('auto', 'confirmed')) AS store_count,
             (SELECT c.image_url FROM current c
                  WHERE c.product_id = p.id AND c.image_url IS NOT NULL
                  ORDER BY c.match_score DESC LIMIT 1) AS image_url

@@ -1,21 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Admin — Produtos{% endblock %}
 {% block content %}
-<h1>Admin — Produtos rastreados</h1>
-<p class="meta">Visão pública em <a href="/public/">/public/</a></p>
+<div class="page-title-row">
+  <h1>Admin — Produtos rastreados</h1>
+  {% if products %}
+  <div class="search-input-wrap">
+    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input id="product-search" type="search" placeholder="Buscar produtos..." autocomplete="off" spellcheck="false">
+    <button class="search-clear" id="search-clear" aria-label="Limpar busca">✕</button>
+  </div>
+  {% endif %}
+</div>
+<p class="meta">Visão pública em <a href="/public/">public</a></p>
 
 {% if not products %}
 <p class="empty">Nenhum produto ainda. Rode <code>python -m comparador track</code> primeiro.</p>
 {% else %}
-<div class="product-grid">
+<div class="product-grid" id="product-grid">
   {% for p in products %}
-  <a class="product-card admin-card" href="/admin/product/{{ p.id }}">
+  <a class="product-card admin-card" href="/admin/product/{{ p.id }}" data-name="{{ p.display_name | lower }}">
     <div class="product-body">
       <div class="product-header-row">
         <h2>{{ p.display_name }}</h2>
         <span class="listing-count">{{ p.listing_count }} ofertas</span>
       </div>
-      
+
       <div class="product-meta">
         <div class="price-info">
           <span class="label">Menor preço</span>
@@ -23,15 +34,54 @@
             {% if p.best_price %}R$ {{ "%.2f"|format(p.best_price) }}{% else %}—{% endif %}
           </span>
         </div>
-        
+
         {% if p.best_site %}
-          <span class="site-badge site-{{ p.best_site }}">{{ p.best_site }}</span>
+        <span class="site-badge site-{{ p.best_site }}">{{ p.best_site }}</span>
         {% endif %}
       </div>
-      
+
     </div>
   </a>
   {% endfor %}
 </div>
+<p class="empty search-no-results" id="search-no-results" style="display:none;">
+  Nenhum produto encontrado para "<span id="search-term-display"></span>".
+</p>
+
+<script>
+(function () {
+  const input    = document.getElementById('product-search');
+  const clearBtn = document.getElementById('search-clear');
+  const grid     = document.getElementById('product-grid');
+  const noRes    = document.getElementById('search-no-results');
+  const termSpan = document.getElementById('search-term-display');
+  if (!input || !grid) return;
+  const cards = Array.from(grid.querySelectorAll('.product-card'));
+
+  function filter(query) {
+    const q = query.trim().toLowerCase();
+    let visible = 0;
+    cards.forEach(card => {
+      const match = !q || (card.dataset.name || '').includes(q);
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const hasQuery = q.length > 0;
+    clearBtn.style.opacity = hasQuery ? '1' : '0';
+    clearBtn.style.pointerEvents = hasQuery ? 'auto' : 'none';
+    if (hasQuery && visible === 0) {
+      grid.style.display = 'none';
+      termSpan.textContent = query.trim();
+      noRes.style.display = 'block';
+    } else {
+      grid.style.display = '';
+      noRes.style.display = 'none';
+    }
+  }
+
+  input.addEventListener('input', () => filter(input.value));
+  clearBtn.addEventListener('click', () => { input.value = ''; input.focus(); filter(''); });
+})();
+</script>
 {% endif %}
 {% endblock %}

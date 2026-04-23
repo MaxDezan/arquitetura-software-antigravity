@@ -29,21 +29,19 @@ class MagaluScraper(BaseScraper):
 
     def _parse(self, html: str, max_results: int) -> list[ListingSnapshot]:
         soup = BeautifulSoup(html, "html.parser")
-        items = soup.select("[data-testid='product-card']")
-        if not items:
-            items = soup.select(
-                "li a[href*='/p/'], a[data-testid='product-card-container']"
-            )
+        # Magalu no longer uses data-testid='product-card'.
+        # Products are <li> ancestors of <a href*='/p/'> product links.
+        links = soup.select("a[href*='/p/']")
+        # Fall back to older layout selectors if needed
+        if not links:
+            links = soup.select("li a[href*='/p/'], a[data-testid='product-card-container']")
 
         results: list[ListingSnapshot] = []
         seen: set[str] = set()
 
-        for item in items:
+        for a in links:
             if len(results) >= max_results:
                 break
-            a = item if item.name == "a" else item.select_one("a[href*='/p/']")
-            if not a:
-                continue
             href = a.get("href", "")
             if href.startswith("/"):
                 href = self.BASE + href
@@ -53,6 +51,11 @@ class MagaluScraper(BaseScraper):
             if site_id in seen:
                 continue
             seen.add(site_id)
+
+            # The product card is the closest <li> ancestor
+            item = a.find_parent("li")
+            if not item:
+                item = a
 
             title_el = item.select_one(
                 "[data-testid='product-title'], h2, h3, [data-testid='title']"
@@ -90,8 +93,9 @@ class MagaluScraper(BaseScraper):
 
     @staticmethod
     def _extract_price(item) -> float | None:
-        # price-value = highlighted current price (usually Pix). When there's
-        # no discount Magalu omits price-value and keeps only price-original.
+        # data-testid='price-value' = discounted price (Pix / promotional).
+        # When there is no discount, Magalu omits price-value and only shows
+        # price-original, so we fall back to it.
         el = item.select_one("[data-testid='price-value']")
         if el is None:
             el = item.select_one("[data-testid='price-original']")
@@ -99,7 +103,8 @@ class MagaluScraper(BaseScraper):
 
     @staticmethod
     def _extract_original_price(item) -> float | None:
-        # Only meaningful as "de" price when a discounted price-value also exists.
+        # price-original = the "De" (crossed-out) full price.
+        # Only meaningful when a discounted price-value also exists.
         if item.select_one("[data-testid='price-value']") is None:
             return None
         el = item.select_one("[data-testid='price-original']")
